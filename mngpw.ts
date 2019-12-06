@@ -14,6 +14,7 @@ type FlagsType = {
   display?: boolean;
   init?: boolean;
   update?: boolean;
+  all?: boolean;
 }
 
 type jsonType = {
@@ -25,7 +26,12 @@ type jsonType = {
 main();
 
 async function main () {
-  const { key, u, user, p, password, s, store, d, display, init, update } = flags.parse(Deno.args) as FlagsType;
+  const { key, u, user, p, password, s, store, d, display, init, update, all } = flags.parse(Deno.args) as FlagsType;
+
+  if (all) {
+    await displayAll().catch(err => console.log(err));
+    return;
+  }
 
   if (s || store) {
     if ((key) && (u || user) && (p || password)) {
@@ -66,6 +72,19 @@ async function main () {
   console.log('Please choose -s, -d, --update or --init');
 }
 
+async function displayAll() {
+  const dotfile = `${Deno.homeDir()}/.mngpw`;
+  const json = await readFileStr(dotfile, {encoding: 'utf-8'}).catch(() => {
+    throw '.mngpw file is not found'
+  });
+  const arr: jsonType[] = json && typeof json == 'string' ? JSON.parse(json) : new Array();
+  if (arr) {
+    console.table(arr);
+  } else {
+    console.log('Could not find password to display');
+  }
+}
+
 async function register(key: string, user: string, password: string) {
   const dotfile = `${Deno.homeDir()}/.mngpw`;
   const json = await readFileStr(dotfile, {encoding: 'utf-8'}).catch(() => createDot());
@@ -76,7 +95,7 @@ async function register(key: string, user: string, password: string) {
   const uniqArr = arr.filter((x, i, self) => (
     self.findIndex(y => y.key === x.key) === i
   ));
-  writeJson(dotfile, uniqArr);
+  writeJson(dotfile, uniqArr, {spaces: 2});
 }
 
 async function show(key: string) {
@@ -106,7 +125,7 @@ async function updateJson(key: string, user: string, password: string) {
     if (user) target.user = user;
     if (password) target.password = password;
     newArr.push(target);
-    writeJson(dotfile, newArr);
+    writeJson(dotfile, newArr, {spaces: 2});
   } else {
     console.log('The password corresponding to key is not found');
   }
@@ -125,7 +144,7 @@ async function initFile() {
 
 async function getInput() {
   const buf = new Uint8Array(1024);
-  const msg = 'The file already exists, will you overwrite it? [y/n]';
+  const msg = 'The file already exists, will you overwrite it? [yN]';
   console.log(msg);
   const n = await Deno.stdin.read(buf); 
   if (n == Deno.EOF) {
