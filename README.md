@@ -1,4 +1,5 @@
-# mngpw ~cli password manager~
+# mngpw
+mngpw is simple cli password manager made with Deno TypeScript.
 
 ## install
 ```
