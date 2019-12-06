@@ -13,7 +13,6 @@ type FlagsType = {
   d?: boolean;
   display?: boolean;
   init?: boolean;
-  // allとかあってもいいかも
 
 }
 
@@ -25,21 +24,19 @@ type jsonType = {
 
 async function createDot() {
   const dotfile = `${Deno.homeDir()}/.mngpw`;
-  console.log(dotfile);
   const encoder = new TextEncoder();
   const data = encoder.encode();
   await Deno.writeFileSync(dotfile, data, {create: true});
 }
 
 async function checkInput(input: string) {
-  console.log(input);
   switch (input) {
     case 'y':
     case 'yes':
     case 'Y':
     case 'YES':
     case '1':
-      createDot();
+      await createDot();
       break;
 
     case 'n':
@@ -50,17 +47,14 @@ async function checkInput(input: string) {
       break;
     default:
       console.log('Please input y or n');
-      getInput();
+      await getInput();
       break;
   }
 }
 
-async function getInput(cannot_find = false) {
+async function getInput() {
   const buf = new Uint8Array(1024);
-  let msg = 'The file already exists, will you overwrite it? [y/n]';
-  if (cannot_find) {
-    msg = '.mngpw file cannot find, will you create it? [y/n]';
-  }
+  const msg = 'The file already exists, will you overwrite it? [y/n]';
   console.log(msg);
   const n = await Deno.stdin.read(buf); 
   if (n == Deno.EOF) {
@@ -86,9 +80,9 @@ async function register(key: string, user: string, password: string) {
   const dotfile = `${Deno.homeDir()}/.mngpw`;
   const json = await readFileStr(dotfile, {encoding: 'utf-8'})
   .catch(() => {
-    getInput(true);
+    createDot();
   })
-  let arr: jsonType[] = typeof json == 'string' ? JSON.parse(json) : new Array();
+  const arr: jsonType[] = typeof json == 'string' ? JSON.parse(json) : new Array();
   // JSONに登録する
   const obj: jsonType = {key, user, password};
   arr.push(obj);
@@ -98,9 +92,19 @@ async function register(key: string, user: string, password: string) {
   writeJson(dotfile, uniqArr);
 }
 
-function show(key: string) {
-  console.log(key);
+async function show(key: string) {
   // JSONからkeyに合致したuser:passwordを出力する
+  const dotfile = `${Deno.homeDir()}/.mngpw`;
+  const json = await readFileStr(dotfile, {encoding: 'utf-8'}).catch(() => {
+    throw '.mngpw file is not found'
+  });
+  const arr: jsonType[] = json && typeof json == 'string' ? JSON.parse(json) : new Array();
+  const result = arr.find(item => item.key === key);
+  if (result) {
+    console.table(result);
+  } else {
+    console.log('The password corresponding to key is not found');
+  }
 }
 
 async function main () {
@@ -110,7 +114,7 @@ async function main () {
     if ((key) && (u || user) && (p || password)) {
       const user_val: string = u ? u : user;
       const password_val: string = p ? p : password;
-      register(key, user_val, password_val);
+      await register(key, user_val, password_val);
       return;
     }
     console.log('Please choose -s option with --key, -u and -p options');
@@ -119,19 +123,17 @@ async function main () {
 
   if (d || display) {
     if (key) {
-      show(key);
+      await show(key).catch(err => console.log(err));
       return;
     }
-    console.log('Please choose -d option with -t option.');
+    console.log('Please choose -d option with --key option.');
+    return;
   }
 
   if (init) {
     await initFile();
   }
 
-  const encoder = new TextEncoder();
-  const data = encoder.encode('Hello, Deno2!\n');
-  await Deno.writeFile('hoge', data);
 }
 
 main();
