@@ -13,7 +13,7 @@ type FlagsType = {
   d?: boolean;
   display?: boolean;
   init?: boolean;
-
+  update?: boolean;
 }
 
 type jsonType = {
@@ -22,67 +22,54 @@ type jsonType = {
   password: string;
 }
 
-async function createDot() {
-  const dotfile = `${Deno.homeDir()}/.mngpw`;
-  const encoder = new TextEncoder();
-  const data = encoder.encode();
-  await Deno.writeFileSync(dotfile, data, {create: true});
-}
+main();
 
-async function checkInput(input: string) {
-  switch (input) {
-    case 'y':
-    case 'yes':
-    case 'Y':
-    case 'YES':
-    case '1':
-      await createDot();
-      break;
+async function main () {
+  const { key, u, user, p, password, s, store, d, display, init, update } = flags.parse(Deno.args) as FlagsType;
 
-    case 'n':
-    case 'no':
-    case 'N':
-    case 'NO':
-    case '0':
-      break;
-    default:
-      console.log('Please input y or n');
-      await getInput();
-      break;
+  if (s || store) {
+    if ((key) && (u || user) && (p || password)) {
+      const user_val: string = u ? u : user;
+      const password_val: string = p ? p : password;
+      await register(key, user_val, password_val);
+      return;
+    }
+    console.log('Please choose -s option with --key, -u and -p options');
+    return;
   }
-}
 
-async function getInput() {
-  const buf = new Uint8Array(1024);
-  const msg = 'The file already exists, will you overwrite it? [y/n]';
-  console.log(msg);
-  const n = await Deno.stdin.read(buf); 
-  if (n == Deno.EOF) {
-    console.log("Standard input closed")
-  } else {
-    const input = new TextDecoder().decode(buf.subarray(0, n-1));
-    await checkInput(input);
+  if (d || display) {
+    if (key) {
+      await show(key).catch(err => console.log(err));
+      return;
+    }
+    console.log('Please choose -d option with --key option.');
+    return;
   }
-}
 
-async function initFile() {
-  const dotfile = `${Deno.homeDir()}/.mngpw`;
-  readFileStr(dotfile)
-  .then(() => {
-    getInput();
-  })
-  .catch(() => {
-    createDot();
-  })
+  if (update) {
+    if ((key) && ((u || user) || (p || password))) {
+      const user_val: string = u ? u : user;
+      const password_val: string = p ? p : password;
+      await updateJson(key, user_val, password_val).catch(err => console.log(err));
+      return; 
+    } else {
+      console.log('Please choose --update option with -u or -p options')
+    }
+  }
+
+  if (init) {
+    await initFile();
+    return;
+  }
+
+  console.log('Please choose -s, -d, --update or --init');
 }
 
 async function register(key: string, user: string, password: string) {
   const dotfile = `${Deno.homeDir()}/.mngpw`;
-  const json = await readFileStr(dotfile, {encoding: 'utf-8'})
-  .catch(() => {
-    createDot();
-  })
-  const arr: jsonType[] = typeof json == 'string' ? JSON.parse(json) : new Array();
+  const json = await readFileStr(dotfile, {encoding: 'utf-8'}).catch(() => createDot());
+  const arr: jsonType[] = json && typeof json == 'string' ? JSON.parse(json) : new Array();
   // JSONに登録する
   const obj: jsonType = {key, user, password};
   arr.push(obj);
@@ -107,33 +94,75 @@ async function show(key: string) {
   }
 }
 
-async function main () {
-  const { key, u, user, p, password, s, store, d, display, init } = flags.parse(Deno.args) as FlagsType;
-
-  if (s || store) {
-    if ((key) && (u || user) && (p || password)) {
-      const user_val: string = u ? u : user;
-      const password_val: string = p ? p : password;
-      await register(key, user_val, password_val);
-      return;
-    }
-    console.log('Please choose -s option with --key, -u and -p options');
-    return;
+async function updateJson(key: string, user: string, password: string) {
+  const dotfile = `${Deno.homeDir()}/.mngpw`;
+  const json = await readFileStr(dotfile, {encoding: 'utf-8'}).catch(() => {
+    throw '.mngpw file is not found'
+  });
+  const arr: jsonType[] = json && typeof json == 'string' ? JSON.parse(json) : new Array();
+  const target = arr.find(item => item.key === key);
+  if (target) {
+    const newArr = arr.filter(obj => obj.key !== target.key);
+    if (user) target.user = user;
+    if (password) target.password = password;
+    newArr.push(target);
+    writeJson(dotfile, newArr);
+  } else {
+    console.log('The password corresponding to key is not found');
   }
-
-  if (d || display) {
-    if (key) {
-      await show(key).catch(err => console.log(err));
-      return;
-    }
-    console.log('Please choose -d option with --key option.');
-    return;
-  }
-
-  if (init) {
-    await initFile();
-  }
-
 }
 
-main();
+async function initFile() {
+  const dotfile = `${Deno.homeDir()}/.mngpw`;
+  readFileStr(dotfile)
+  .then(() => {
+    getInput();
+  })
+  .catch(() => {
+    createDot();
+  })
+}
+
+async function getInput() {
+  const buf = new Uint8Array(1024);
+  const msg = 'The file already exists, will you overwrite it? [y/n]';
+  console.log(msg);
+  const n = await Deno.stdin.read(buf); 
+  if (n == Deno.EOF) {
+    console.log("Standard input closed")
+  } else {
+    const input = new TextDecoder().decode(buf.subarray(0, n-1));
+    await checkInput(input);
+  }
+}
+
+async function createDot() {
+  const dotfile = `${Deno.homeDir()}/.mngpw`;
+  const encoder = new TextEncoder();
+  const data = encoder.encode();
+  await Deno.writeFileSync(dotfile, data, {create: true});
+  console.log(`${dotfile} file created successfully!`);
+}
+
+async function checkInput(input: string) {
+  switch (input) {
+    case 'y':
+    case 'yes':
+    case 'Y':
+    case 'YES':
+    case '1':
+      await createDot();
+      break;
+
+    case 'n':
+    case 'no':
+    case 'N':
+    case 'NO':
+    case '0':
+      break;
+    default:
+      console.log('Please input y or n');
+      await getInput();
+      break;
+  }
+}
