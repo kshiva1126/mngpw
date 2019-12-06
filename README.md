@@ -39,4 +39,17 @@ $ mngpw --all
 │    0    │ "test"  │ "user2" │   "password"   │        │
 │    1    │ "test3" │ "user3" │ "blahblahblah" │        │
 └─────────┴─────────┴─────────┴────────────────┴────────┘
+$ cat .mngpw
+[
+  {
+    "key": "test",
+    "user": "user2",
+    "password": "password"
+  },
+  {
+    "key": "test3",
+    "user": "user3",
+    "password": "blahblahblah"
+  }
+]%
 ```
