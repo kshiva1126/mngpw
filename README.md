@@ -39,6 +39,9 @@ $ mngpw --all
 │    0    │ "test"  │ "user2" │   "password"   │        │
 │    1    │ "test3" │ "user3" │ "blahblahblah" │        │
 └─────────┴─────────┴─────────┴────────────────┴────────┘
+$ mngpw --copy --key test3
+password : blahblahblah
+Copy to clipboard!
 $ cat ~/.mngpw
 [
   {
