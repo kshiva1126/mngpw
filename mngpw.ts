@@ -1,6 +1,7 @@
 import * as flags from 'https://deno.land/std/flags/mod.ts'
 import { readFileStr } from 'https://deno.land/std/fs/read_file_str.ts'
 import { writeJson } from 'https://deno.land/std/fs/write_json.ts'
+import { clipboard } from 'https://deno.land/x/clipboard/mod.ts';
 
 type FlagsType = {
   key?: string;
@@ -15,6 +16,7 @@ type FlagsType = {
   init?: boolean;
   update?: boolean;
   all?: boolean;
+  copy?: boolean;
 }
 
 type jsonType = {
@@ -26,7 +28,7 @@ type jsonType = {
 main();
 
 async function main () {
-  const { key, u, user, p, password, s, store, d, display, init, update, all } = flags.parse(Deno.args) as FlagsType;
+  const { key, u, user, p, password, s, store, d, display, init, update, all, copy } = flags.parse(Deno.args) as FlagsType;
 
   if (all) {
     await displayAll().catch(err => console.log(err));
@@ -58,9 +60,18 @@ async function main () {
       const user_val: string = u ? u : user;
       const password_val: string = p ? p : password;
       await updateJson(key, user_val, password_val).catch(err => console.log(err));
-      return; 
+      return;
     } else {
       console.log('Please choose --update option with -u or -p options')
+    }
+  }
+
+  if (copy) {
+    if (key) {
+      await copyToClipboard(key).catch(err => console.log(err));
+      return;
+    } else {
+      console.log('Please choose --copy option with --key option')
     }
   }
 
@@ -126,6 +137,22 @@ async function updateJson(key: string, user: string, password: string) {
     if (password) target.password = password;
     newArr.push(target);
     writeJson(dotfile, newArr, {spaces: 2});
+  } else {
+    console.log('The password corresponding to key is not found');
+  }
+}
+
+async function copyToClipboard(key: string) {
+  const dotfile = `${Deno.homeDir()}/.mngpw`;
+  const json = await readFileStr(dotfile, {encoding: 'utf-8'}).catch(() => {
+    throw '.mngpw file is not found'
+  });
+  const arr: jsonType[] = json && typeof json == 'string' ? JSON.parse(json) : new Array();
+  const result = arr.find(item => item.key === key);
+  if (result) {
+    await clipboard.writeText(result.password);
+    console.log(`password : ${result.password}`)
+    console.log('Copy to clipboard!')
   } else {
     console.log('The password corresponding to key is not found');
   }
