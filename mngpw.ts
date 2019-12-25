@@ -1,7 +1,7 @@
 import * as flags from 'https://deno.land/std/flags/mod.ts'
 import { readFileStr } from 'https://deno.land/std/fs/read_file_str.ts'
 import { writeJson } from 'https://deno.land/std/fs/write_json.ts'
-import { clipboard } from 'https://deno.land/x/clipboard/mod.ts';
+import { clipboard } from 'https://deno.land/x/clipboard/mod.ts'
 
 type FlagsType = {
   key?: string;
@@ -19,7 +19,7 @@ type FlagsType = {
   copy?: boolean;
 }
 
-type jsonType = {
+type JsonType = {
   key: string;
   user: string;
   password: string;
@@ -88,7 +88,7 @@ async function displayAll() {
   const json = await readFileStr(dotfile, {encoding: 'utf-8'}).catch(() => {
     throw '.mngpw file is not found'
   });
-  const arr: jsonType[] = json && typeof json == 'string' ? JSON.parse(json) : new Array();
+  const arr: JsonType[] = json && typeof json == 'string' ? JSON.parse(json) : new Array();
   if (arr) {
     console.table(arr);
   } else {
@@ -99,9 +99,9 @@ async function displayAll() {
 async function register(key: string, user: string, password: string) {
   const dotfile = `${Deno.homeDir()}/.mngpw`;
   const json = await readFileStr(dotfile, {encoding: 'utf-8'}).catch(() => createDot());
-  const arr: jsonType[] = json && typeof json == 'string' ? JSON.parse(json) : new Array();
+  const arr: JsonType[] = json && typeof json == 'string' ? JSON.parse(json) : new Array();
   // JSONに登録する
-  const obj: jsonType = {key, user, password};
+  const obj: JsonType = {key, user, password};
   arr.push(obj);
   const uniqArr = arr.filter((x, i, self) => (
     self.findIndex(y => y.key === x.key) === i
@@ -115,7 +115,7 @@ async function show(key: string) {
   const json = await readFileStr(dotfile, {encoding: 'utf-8'}).catch(() => {
     throw '.mngpw file is not found'
   });
-  const arr: jsonType[] = json && typeof json == 'string' ? JSON.parse(json) : new Array();
+  const arr: JsonType[] = json && typeof json == 'string' ? JSON.parse(json) : new Array();
   const result = arr.find(item => item.key === key);
   if (result) {
     console.table(result);
@@ -129,7 +129,7 @@ async function updateJson(key: string, user: string, password: string) {
   const json = await readFileStr(dotfile, {encoding: 'utf-8'}).catch(() => {
     throw '.mngpw file is not found'
   });
-  const arr: jsonType[] = json && typeof json == 'string' ? JSON.parse(json) : new Array();
+  const arr: JsonType[] = json && typeof json == 'string' ? JSON.parse(json) : new Array();
   const target = arr.find(item => item.key === key);
   if (target) {
     const newArr = arr.filter(obj => obj.key !== target.key);
@@ -147,9 +147,10 @@ async function copyToClipboard(key: string) {
   const json = await readFileStr(dotfile, {encoding: 'utf-8'}).catch(() => {
     throw '.mngpw file is not found'
   });
-  const arr: jsonType[] = json && typeof json == 'string' ? JSON.parse(json) : new Array();
+  const arr: JsonType[] = json && typeof json == 'string' ? JSON.parse(json) : new Array();
   const result = arr.find(item => item.key === key);
   if (result) {
+    console.log(result);
     await clipboard.writeText(result.password);
     console.log(`password : ${result.password}`)
     console.log('Copy to clipboard!')
@@ -186,7 +187,7 @@ async function createDot() {
   const dotfile = `${Deno.homeDir()}/.mngpw`;
   const encoder = new TextEncoder();
   const data = encoder.encode();
-  await Deno.writeFileSync(dotfile, data, {create: true});
+  await Deno.writeFile(dotfile, data, {create: true});
   console.log(`${dotfile} file created successfully!`);
 }
 

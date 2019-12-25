@@ -3,7 +3,7 @@ mngpw is simple cli password manager made with Deno TypeScript.
 
 ## install
 ```
-$ deno install mngpw https://raw.githubusercontent.com/kshiva1126/mngpw/master/mngpw.ts --allow-write --allow-read --allow-env
+$ deno install mngpw https://raw.githubusercontent.com/kshiva1126/mngpw/master/mngpw.ts --allow-write --allow-read --allow-env --allow-run
 $ mngpw --init
 ```
 
